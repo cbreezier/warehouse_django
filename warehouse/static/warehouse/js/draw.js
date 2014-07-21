@@ -11,6 +11,7 @@ for (var i = 0; i < 31; i++) {
 $(document).ready(function() {
     renderBirdView(selectedBay, palletData);
     renderGroundView(selectedBay, selectedPallet, palletData);
+    displayDetails(selectedBay, selectedPallet, palletData);
 });
 
 $(window).resize(function() {
@@ -131,7 +132,7 @@ function renderBirdView(selectedBay, palletData) {
 /*
  * Mans-eye view
  */
-function renderGroundView(selectedBay, selectedPallet) {
+function renderGroundView(selectedBay, selectedPallet, palletData) {
     var groundview = document.getElementById('groundview');
     groundview.width = groundview.parentNode.offsetWidth;
     groundview.height = groundview.parentNode.offsetHeight;
@@ -157,18 +158,51 @@ function renderGroundView(selectedBay, selectedPallet) {
     groundview_c.textAlign = 'center';
     groundview_c.fillText('Bay ' + selectedBay, groundview.width / 2, offsetY - 20);
 
+    var highlightX = 0;
+    var highlightY = 0;
+
     groundview_c.strokeStyle = 'gray';
     groundview_c.lineWidth = 2;
     groundview_c.fillStyle = '#DDDDDD';
     for (var row = 0; row < 4; row++) {
         for (var col = 0; col < 2; col++) {
-            var palletNumber = (row * 2) + col + 1;
-            var fillHeight = palletData[selectedBay - 1][palletNumber - 1] * dy / 100;
-            groundview_c.fillRect(startX+1, startY + dy - fillHeight+1, dx-2, fillHeight-1);
-
             var startX = margin + (col * dx);
             var startY = offsetY + (row * dy);
+            var palletNumber = (row * 2) + col + 1;
+            if (palletNumber == selectedPallet) {
+                highlightX = startX;
+                highlightY = startY;
+            }
+
+            var fillHeight = palletData[selectedBay - 1][palletNumber - 1] * dy / 100;
+            groundview_c.fillRect(startX+1, startY + dy - fillHeight+1, dx-2, fillHeight-1);
             groundview_c.strokeRect(startX, startY, dx, dy);
         }
     }
+
+    if (highlightX != 0 && highlightY != 0) {
+        groundview_c.strokeStyle = 'blue';
+        groundview_c.strokeRect(highlightX, highlightY, dx, dy);
+    }
+}
+
+/*
+ * Update details box
+ */
+function displayDetails(selectedBay, selectedPallet, palletData) {
+    var title = '';
+    var body = '';
+    if (selectedPallet != 0) {
+        var level = 4 - parseInt((selectedPallet - 1) / 2);
+        var side = selectedPallet % 2 == 0 ? 'Right':'Left';
+        title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
+        body = palletData[selectedBay - 1][selectedPallet - 1] + '% full.';
+    } else if (selectedBay != 0) {
+        title = 'Bay ' + selectedBay;
+    } else {
+        title = 'Warehouse';
+    }
+
+    var html = '<h2>' + title + '</h2><p>' + body + '</p>';
+    $('#details .content').html(html);
 }
