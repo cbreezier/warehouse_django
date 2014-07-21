@@ -311,7 +311,7 @@ function displayDetails() {
         var side = selectedPallet % 2 === 0 ? 'Right':'Left';
         title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
         var volume = palletData[selectedBay][selectedPallet - 1]['volume'];
-        body = (volume / volumePerPallet) + '% full.';
+        body = (volume * 100 / volumePerPallet).toFixed(2) + '% full.';
     } else if (selectedBay != 0) {
         title = 'Bay ' + selectedBay;
     } else {
