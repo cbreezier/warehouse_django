@@ -3,13 +3,13 @@
  */
 selectedBay = parseInt(Math.random() * 31) + 1;
 selectedPallet = parseInt(Math.random() * 8) + 1;
-palletData = new Array(31);
-for (var i = 0; i < 31; i++) {
-    palletData[i] = new Array(8);
-    for (var j = 0; j < 8; j++) {
-        palletData[i][j] = Math.random() * 100;
-    }
-}
+// palletData = new Array(31);
+// for (var i = 0; i < 31; i++) {
+//     palletData[i] = new Array(8);
+//     for (var j = 0; j < 8; j++) {
+//         palletData[i][j] = Math.random() * 100;
+//     }
+// }
 
 /*
  * Events and functions that process when things happen
@@ -151,9 +151,9 @@ function renderBirdView(coords) {
         }
         var sum = 0;
         for (var j = 0; j < 8; j++) {
-            sum += palletData[bayNumber - 1][j];
+            sum += palletData[bayNumber][j]['volume'];
         }
-        birdview_c.fillStyle = shadeColor(baseColor, -sum/8);
+        birdview_c.fillStyle = shadeColor(baseColor, -sum * 100 / (8 * volumePerPallet));
 
         birdview_c.fillRect(startX, startY, bayWidth, shelfWidth);
         birdview_c.strokeRect(startX, startY, bayWidth, shelfWidth);
@@ -177,9 +177,9 @@ function renderBirdView(coords) {
         }
         var sum = 0;
         for (var j = 0; j < 8; j++) {
-            sum += palletData[bayNumber - 1][j];
+            sum += palletData[bayNumber][j]['volume'];
         }
-        birdview_c.fillStyle = shadeColor(baseColor, -sum/8);
+        birdview_c.fillStyle = shadeColor(baseColor, -sum * 100 / (8 * volumePerPallet));
 
         birdview_c.fillRect(startX, startY, bayWidth, shelfWidth);
         birdview_c.strokeRect(startX, startY, bayWidth, shelfWidth);
@@ -283,7 +283,8 @@ function renderGroundView(coords) {
                 highlightY = startY;
             }
 
-            var fillHeight = palletData[selectedBay - 1][palletNumber - 1] * dy / 100;
+            var volume = palletData[selectedBay][palletNumber - 1]['volume'];
+            var fillHeight = volume / volumePerPallet * dy;
             groundview_c.fillStyle = '#DDDDDD';
             groundview_c.fillRect(startX+1, startY + dy - fillHeight+1, dx-2, fillHeight-1);
             groundview_c.strokeRect(startX, startY, dx, dy);
@@ -309,7 +310,8 @@ function displayDetails() {
         var level = 4 - parseInt((selectedPallet - 1) / 2);
         var side = selectedPallet % 2 === 0 ? 'Right':'Left';
         title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
-        body = palletData[selectedBay - 1][selectedPallet - 1] + '% full.';
+        var volume = palletData[selectedBay][selectedPallet - 1]['volume'];
+        body = (volume / volumePerPallet) + '% full.';
     } else if (selectedBay != 0) {
         title = 'Bay ' + selectedBay;
     } else {

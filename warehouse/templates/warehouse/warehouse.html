@@ -22,5 +22,10 @@
     <div class="content"></div>
   </div>
 
+  <script>
+    palletData = JSON.parse('{{ pallet_data|safe }}');
+    volumePerPallet = {{ pallet_volume }};
+    console.log(palletData[10][3], volumePerPallet);
+  </script>
   <script src="{% static 'warehouse/js/draw.js' %}"></script>
 {% endblock %}
