@@ -1,7 +1,13 @@
 from django.contrib import admin
+from django.contrib.auth.models import User, Group
+from django.contrib.sites.models import Site
 from warehouse.models import *
 
 # Register your models here.
+# admin.site.unregister(User)
+# admin.site.unregister(Group)
+# # admin.site.unregister(Site)
+
 admin.site.register(StockType, admin.ModelAdmin)
 admin.site.register(Warehouse, admin.ModelAdmin)
 admin.site.register(Shelf, admin.ModelAdmin)

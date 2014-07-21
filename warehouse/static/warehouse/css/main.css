@@ -1,0 +1,28 @@
+body {
+    padding-top: 70px;
+}
+
+.title {
+    text-align: center;
+}
+
+.diagram {
+    width: 100%;
+    height: 400px;
+    border: 1px solid #DDDDDD;
+}
+
+#details {
+    height: 300px;
+    margin-top: 30px;
+    border: 1px solid #DDDDDD;
+    border-top: none;
+}
+#details #bar {
+    height: 25px;
+    padding: 2px;
+    padding-left: 10px;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    background-color: #EFEFEF;
+}
