@@ -1,3 +1,6 @@
+/*
+ * Get data here (or generate fake sample data)
+ */
 selectedBay = parseInt(Math.random() * 31) + 1;
 selectedPallet = parseInt(Math.random() * 8) + 1;
 palletData = new Array(31);
@@ -8,17 +11,52 @@ for (var i = 0; i < 31; i++) {
     }
 }
 
+/*
+ * Events and functions that process when things happen
+ */
 $(document).ready(function() {
-    renderBirdView(selectedBay, palletData);
-    renderGroundView(selectedBay, selectedPallet, palletData);
-    displayDetails(selectedBay, selectedPallet, palletData);
-});
+    renderBirdView();
+    renderGroundView();
+    displayDetails();
 
+    var birdview = document.getElementById('birdview');
+    birdview.addEventListener('click', function(event) {
+        var coords = birdview.relMouseCoords(event);
+        renderBirdView(coords);
+    }, false);
+
+    var groundview = document.getElementById('groundview');
+    groundview.addEventListener('click', function(event) {
+        var coords = groundview.relMouseCoords(event);
+        renderGroundView(coords);
+    }, false);
+});
 $(window).resize(function() {
-    renderBirdView(selectedBay, palletData);
-    renderGroundView(selectedBay, selectedPallet, palletData);
+    renderBirdView();
+    renderGroundView();
 });
 
+HTMLCanvasElement.prototype.relMouseCoords = function (event) {
+    var totalOffsetX = 0;
+    var totalOffsetY = 0;
+    var canvasX = 0;
+    var canvasY = 0;
+    var currentElement = this;
+
+    do {
+        totalOffsetX += currentElement.offsetLeft - currentElement.scrollLeft;
+        totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
+    } while (currentElement = currentElement.offsetParent);
+
+    canvasX = event.pageX - totalOffsetX;
+    canvasY = event.pageY - totalOffsetY;
+
+    return {x: canvasX, y: canvasY}
+}
+
+/*
+ * Helper functions
+ */
 function shadeColor(color, percent) {
     var R = parseInt(color.substring(1,3),16);
     var G = parseInt(color.substring(3,5),16);
@@ -39,32 +77,75 @@ function shadeColor(color, percent) {
     return "#"+RR+GG+BB;
 }
 
+function selectBay(bay) {
+    selectedBay = bay;
+    selectedPallet = 0;
+    renderGroundView();
+    displayDetails();
+}
+function selectPallet(pallet) {
+    selectedPallet = pallet;
+    displayDetails();
+}
+
 /*
  * Birds-eye view
  */
-function renderBirdView(selectedBay, palletData) {
+function renderBirdView(coords) {
+    // Set default value for coords (0, 0)
+    coords = coords !== undefined ? coords : {x: 0, y: 0};
+
+    // Set width and height manually to avoid stretching
     var birdview = document.getElementById('birdview');
     birdview.width = birdview.parentNode.offsetWidth;
     birdview.height = birdview.parentNode.offsetHeight;
     var birdview_c = birdview.getContext('2d');
 
+    // Some preliminary calculation variables
     var margin = 20;
     var shelfWidth = (birdview.height - (2 * margin)) / 8;
     var bayWidth = (birdview.width - (2 * margin)) / 20;
     var fontSize = bayWidth / 2;
 
+    // Check for click event
+    if (coords.x !== 0 && coords.y !== 0) {
+        if (coords.y > margin && coords.y < margin + shelfWidth) {
+            // Click is in shelf 1 (Top shelf)
+            if (coords.x > margin && coords.x < margin + (20 * bayWidth)) {
+                var fromTheLeft = parseInt((coords.x - margin) / bayWidth);
+                var bayClicked = 20 - fromTheLeft;
+
+                // Mark this bay as selected
+                selectBay(bayClicked);
+            }
+        } else if (coords.y > margin + (7 * shelfWidth) && coords.y < margin + (8 * shelfWidth)) {
+            // Click is in shelf 4 (Bottom shelf)
+            if (coords.x > margin && coords.x < margin + (11 * bayWidth)) {
+                var fromTheLeft = parseInt((coords.x - margin) / bayWidth);
+                var bayClicked = 31 - fromTheLeft;
+
+                // Mark this bay as selected
+                selectBay(bayClicked);
+            }
+        } else {
+            selectBay(0);
+        }
+    }
+
+    // Some basic settings
     var baseColor = '#EEEEEE';
     var highlightX = 0;
     var highlightY = 0;
     birdview_c.lineWidth = 1;
     birdview_c.strokeStyle = 'white';
 
+    // Draw the pallets corresponding to shelf 1 (Top shelf)
     for (var i = 0; i < 20; i++) {
         var startX = margin + (i * bayWidth);
         var startY = margin;
 
         var bayNumber = 20 - i;
-        if (bayNumber == selectedBay) {
+        if (bayNumber === selectedBay) {
             highlightX = startX;
             highlightY = startY;
         }
@@ -84,12 +165,13 @@ function renderBirdView(selectedBay, palletData) {
                             startY + shelfWidth + bayWidth/2);
     }
 
+    // Draw the pallets corresponding to shelf 4 (Bottom shelf)
     for (var i = 0; i < 11; i++) {
         var startX = margin + (i * bayWidth);
         var startY = margin + (7 * shelfWidth);
 
         var bayNumber = 31 - i;
-        if (bayNumber == selectedBay) {
+        if (bayNumber === selectedBay) {
             highlightX = startX;
             highlightY = startY;
         }
@@ -109,7 +191,7 @@ function renderBirdView(selectedBay, palletData) {
                             startY - bayWidth/4);
     }
 
-    // These shelves do not exist yet
+    // These shelves do not exist yet (Center shelves)
     birdview_c.fillStyle = '#F9F9F9';
     birdview_c.strokeStyle = 'white';
     birdview_c.beginPath();
@@ -135,13 +217,18 @@ function renderBirdView(selectedBay, palletData) {
 /*
  * Mans-eye view
  */
-function renderGroundView(selectedBay, selectedPallet, palletData) {
+function renderGroundView(coords) {
+    // Set default value for coords (0, 0)
+    coords = coords !== undefined ? coords : {x: 0, y: 0};
+
+    // Set width and height manually to avoid stretching
     var groundview = document.getElementById('groundview');
     groundview.width = groundview.parentNode.offsetWidth;
     groundview.height = groundview.parentNode.offsetHeight;
     var groundview_c = groundview.getContext('2d');
 
-    if (selectedBay == 0) {
+    // No bay selected - special case
+    if (selectedBay === 0) {
         groundview_c.fillStyle = '#DDDDDD';
         groundview_c.font = (groundview.width / 20) + 'px Arial';
         groundview_c.textAlign = 'center';
@@ -151,12 +238,29 @@ function renderGroundView(selectedBay, selectedPallet, palletData) {
         return;
     }
 
+    // Some preliminary calculation variables
     var marginLeft = 100;
     var margin = 20;
     var offsetY = groundview.height * 0.15;
     var dy = groundview.height * 0.8 / 4;
     var dx = (groundview.width - marginLeft - margin) / 2;
 
+    // Check for click event
+    if (coords.x !== 0 && coords.y !== 0) {
+        if (coords.y > offsetY && coords.y < offsetY + 4 * dy &&
+            coords.x > marginLeft && coords.x < marginLeft + 2 * dx) {
+            // Click is on a pallet
+            var row = parseInt((coords.y - offsetY) / dy);
+            var col = parseInt((coords.x - marginLeft) / dx);
+
+            var palletClicked = (row * 2) + col + 1;
+            selectPallet(palletClicked);
+        } else {
+            selectPallet(0);
+        }
+    }
+
+    // Some basic settings
     groundview_c.fillStyle = 'black';
     groundview_c.font = 0.5 * offsetY + 'px Arial';
     groundview_c.textAlign = 'center';
@@ -174,7 +278,7 @@ function renderGroundView(selectedBay, selectedPallet, palletData) {
             var startX = marginLeft + (col * dx);
             var startY = offsetY + (row * dy);
             var palletNumber = (row * 2) + col + 1;
-            if (palletNumber == selectedPallet) {
+            if (palletNumber === selectedPallet) {
                 highlightX = startX;
                 highlightY = startY;
             }
@@ -198,12 +302,12 @@ function renderGroundView(selectedBay, selectedPallet, palletData) {
 /*
  * Update details box
  */
-function displayDetails(selectedBay, selectedPallet, palletData) {
+function displayDetails() {
     var title = '';
     var body = '';
     if (selectedPallet != 0) {
         var level = 4 - parseInt((selectedPallet - 1) / 2);
-        var side = selectedPallet % 2 == 0 ? 'Right':'Left';
+        var side = selectedPallet % 2 === 0 ? 'Right':'Left';
         title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
         body = palletData[selectedBay - 1][selectedPallet - 1] + '% full.';
     } else if (selectedBay != 0) {
