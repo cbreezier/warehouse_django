@@ -110,15 +110,18 @@ function renderBirdView(selectedBay, palletData) {
     }
 
     // These shelves do not exist yet
-    birdview_c.strokeStyle = baseColor;
+    birdview_c.fillStyle = '#F9F9F9';
+    birdview_c.strokeStyle = 'white';
     birdview_c.beginPath();
     birdview_c.rect(margin, margin + (3 * shelfWidth),
                     birdview.width / 2, shelfWidth);
+    birdview_c.fill();
     birdview_c.stroke();
 
     birdview_c.beginPath();
     birdview_c.rect(margin, margin + (4 * shelfWidth),
                     birdview.width / 2, shelfWidth);
+    birdview_c.fill();
     birdview_c.stroke();
 
     // Highlight the matching bay
@@ -148,10 +151,11 @@ function renderGroundView(selectedBay, selectedPallet, palletData) {
         return;
     }
 
+    var marginLeft = 100;
     var margin = 20;
     var offsetY = groundview.height * 0.15;
     var dy = groundview.height * 0.8 / 4;
-    var dx = (groundview.width - (2 * margin)) / 2;
+    var dx = (groundview.width - marginLeft - margin) / 2;
 
     groundview_c.fillStyle = 'black';
     groundview_c.font = 0.5 * offsetY + 'px Arial';
@@ -163,10 +167,11 @@ function renderGroundView(selectedBay, selectedPallet, palletData) {
 
     groundview_c.strokeStyle = 'gray';
     groundview_c.lineWidth = 2;
-    groundview_c.fillStyle = '#DDDDDD';
+    groundview_c.font = 0.3 * offsetY + 'px Arial';
+    groundview_c.textAlign = 'left';
     for (var row = 0; row < 4; row++) {
         for (var col = 0; col < 2; col++) {
-            var startX = margin + (col * dx);
+            var startX = marginLeft + (col * dx);
             var startY = offsetY + (row * dy);
             var palletNumber = (row * 2) + col + 1;
             if (palletNumber == selectedPallet) {
@@ -175,8 +180,12 @@ function renderGroundView(selectedBay, selectedPallet, palletData) {
             }
 
             var fillHeight = palletData[selectedBay - 1][palletNumber - 1] * dy / 100;
+            groundview_c.fillStyle = '#DDDDDD';
             groundview_c.fillRect(startX+1, startY + dy - fillHeight+1, dx-2, fillHeight-1);
             groundview_c.strokeRect(startX, startY, dx, dy);
+
+            groundview_c.fillStyle = 'black';
+            groundview_c.fillText('Level ' + (4 - row), margin, startY + dy/2);
         }
     }
 
