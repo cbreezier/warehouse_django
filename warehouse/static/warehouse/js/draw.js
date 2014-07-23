@@ -39,6 +39,40 @@ $(window).resize(function() {
     renderBirdView();
     renderGroundView();
 });
+$(document).on('click', '#actionModify', function(e) {
+    console.log('clicked');
+    $('#actions').hide();
+    var formTitle = 'Add new stock';
+    var formType = 'StockType';
+    var formValue = '';
+    if (palletData[viewedBay][viewedPallet - 1]['stock'] !== 'None') {
+        formTitle = 'Modify stock quantity';
+        formType = 'Static';
+        formValue = palletData[viewedBay][viewedPallet - 1]['stock'];
+    }
+    $('#actions').after(createForm(formTitle,
+        [
+            {label: 'Stock Type',
+             id: 'stocktype',
+             type: formType,
+             value: formValue},
+            {label: 'Quantity',
+             id: 'qty',
+             type: 'Non-zero',
+             value: ''},
+            {label: 'Comments',
+             id: 'comments',
+             type: 'Text',
+             value: ''}
+        ]
+    ));
+});
+$(document).on('click', '#actionCancel', function(e) {
+    e.preventDefault();
+    $('.actionForm').remove();
+    $('#actions').show();
+    enterMode('VIEW');
+});
 
 HTMLCanvasElement.prototype.relMouseCoords = function (event) {
     var totalOffsetX = 0;
@@ -61,6 +95,38 @@ HTMLCanvasElement.prototype.relMouseCoords = function (event) {
 /*
  * Helper functions
  */
+function createForm(title, fields) {
+    var html = '<div class="actionForm">';
+    html += '<h4>' + title + '</h4>';
+    html += '<form class="form-horizontal" role="form">';
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var fieldType = 'text';
+        if (field['type'] === 'Integer' || field['type'] === 'Text') {
+            fieldType = 'text';
+        }
+        html += '<div class="form-group">';
+        html += '<label for="form' + field['id'] + '" class="col-sm-2 control-label">';
+        html += field['label'];
+        html += '</label>';
+        html += '<div class="col-sm-6">';
+        html += '<input type="' + fieldType + '" class="form-control" id="form' + field['id'] + '">';
+        html += '</div>';
+        html += '</div>';
+    }
+    html += '<div class="form-group">';
+    html += '<div class="col-sm-offset-2 col-sm-10">';
+    html += '<button type="button" id="actionDone" class="btn btn-success">Done</button>';
+    html += '&nbsp;';
+    html += '<button type="button" id="actionCancel" class="btn btn-danger">Cancel</button>';
+    html += '</div>';
+    html += '</div>';
+
+    html += '</form>';
+    html += '</div>';
+
+    return html;
+}
 function shadeColor(color, percent) {
     var R = parseInt(color.substring(1,3),16);
     var G = parseInt(color.substring(3,5),16);
@@ -117,7 +183,10 @@ function pickPallet(pallet) {
     }
 }
 function enterMode(mode) {
-    exitMode(curMode);
+    if (mode === curMode) {
+        return;
+    }
+    exitMode();
     curMode = mode;
 
     if (mode === 'VIEW') {
@@ -130,11 +199,10 @@ function enterMode(mode) {
     renderGroundView();
     displayDetails();
 }
-function exitMode(mode) {
-    if (mode === 'VIEW') {
+function exitMode() {
+    if (curMode === 'VIEW') {
         // Nothing required
-    } else if (mode === 'PICK') {
-        curMode = 'PICK';
+    } else if (curMode === 'PICK') {
         unhighlightDiagrams();
         pickedBay = 0;
         pickedPallet = 0;
@@ -429,6 +497,10 @@ function displayDetails() {
         var level = 4 - parseInt((viewedPallet - 1) / 2);
         var side = viewedPallet % 2 === 0 ? 'Right':'Left';
         var data = palletData[viewedBay][viewedPallet - 1];
+
+        body += '<div id="actions">';
+        body += '<button type="button" class="btn btn-default" id="actionModify">Modify Stock</button>';
+        body += '</div>';
 
         // Pallet data
         title = 'Bay ' + viewedBay + ': ' + side + ' pallet level ' + level;
