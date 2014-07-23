@@ -11,6 +11,7 @@ class StockType(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     weight = models.DecimalField(max_digits=10, decimal_places=2)
     volume = models.DecimalField(max_digits=10, decimal_places=2)
+    qty_per_box = models.SmallIntegerField()
     def __unicode__(self):
         return self.name
 
@@ -94,6 +95,7 @@ class Log(models.Model):
         ('MOD', 'Modify return status'),
     )
     time = models.DateTimeField()
+    comments = models.TextField(max_length=2000, blank=True)
     log_type = models.CharField(max_length=3, choices=TYPES)
     pallet1 = models.ForeignKey(Pallet, null=True, blank=True, related_name='+')
     pallet2 = models.ForeignKey(Pallet, null=True, blank=True, related_name='+')

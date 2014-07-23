@@ -1,15 +1,8 @@
 /*
- * Get data here (or generate fake sample data)
+ * Initial settings
  */
-selectedBay = parseInt(Math.random() * 31) + 1;
-selectedPallet = parseInt(Math.random() * 8) + 1;
-// palletData = new Array(31);
-// for (var i = 0; i < 31; i++) {
-//     palletData[i] = new Array(8);
-//     for (var j = 0; j < 8; j++) {
-//         palletData[i][j] = Math.random() * 100;
-//     }
-// }
+selectedBay = 0;
+selectedPallet = 0;
 
 /*
  * Events and functions that process when things happen
@@ -297,6 +290,7 @@ function renderGroundView(coords) {
             groundview_c.font = 0.3 * offsetY + 'px Arial';
             groundview_c.fillText(data['stock'], startX + dx/2, startY + dy/2);
             if (data['stock'] !== 'None') {
+                groundview_c.font = 0.2 * offsetY + 'px Arial';
                 groundview_c.fillText(data['qty'] + 'pcs', startX + dx/2, startY + 3*dy/4);
             }
             
@@ -325,11 +319,20 @@ function displayDetails() {
         var side = selectedPallet % 2 === 0 ? 'Right':'Left';
         var data = palletData[selectedBay][selectedPallet - 1];
 
+        // Pallet data
         title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
         var volume = data['volume'];
         body += (volume * 100 / volumePerPallet).toFixed(2) + '% full.<br>';
         for (var field in data) {
             body += field + ': ' + data[field] + '<br>';
+        }
+
+        // Stock data
+        if (data['stock'] !== 'None') {
+            body += '<br>';
+            for (var field in stockData[data['stock']]) {
+                body += '> ' + field + ': ' + stockData[data['stock']][field] + '<br>';
+            }
         }
     } else if (selectedBay != 0) {
         title = 'Bay ' + selectedBay;
