@@ -1,8 +1,19 @@
 /*
  * Initial settings
  */
-selectedBay = 0;
-selectedPallet = 0;
+viewedBay = 0;
+viewedPallet = 0;
+viewedColor = 'blue';
+pickedBay = 0;
+pickedPallet = 0;
+pickedColor = 'green';
+
+// Modes:
+//     VIEW: View the details of the warehouse, bay, pallet.
+//           This is the default mode.
+//     PICK: Pick a pallet by first picking a bay.
+//           This is used to pick a pallet to operate on (eg move stock qty)
+curMode = 'VIEW';
 
 /*
  * Events and functions that process when things happen
@@ -70,15 +81,72 @@ function shadeColor(color, percent) {
     return "#"+RR+GG+BB;
 }
 
-function selectBay(bay) {
-    selectedBay = bay;
-    selectedPallet = 0;
+function viewBay(bay) {
+    viewedBay = bay;
+    viewedPallet = 0;
     renderGroundView();
     displayDetails();
 }
-function selectPallet(pallet) {
-    selectedPallet = pallet;
+function viewPallet(pallet) {
+    viewedPallet = pallet;
     displayDetails();
+}
+function pickBay(bay) {
+    pickedBay = bay;
+    pickedPallet = 0;
+    renderGroundView();
+    displayDetails();
+
+    unhighlightDiagrams();
+    if (bay === 0) {
+        // Unpick a bay - back to step 1 (pick bay)
+        highlightDiagram('birdview', 'red');
+    } else {
+        // A bay is picked, go to next step
+        highlightDiagram('groundview', 'red');
+    }
+}
+function pickPallet(pallet) {
+    pickedPallet = pallet;
+    displayDetails();
+
+    unhighlightDiagrams();
+    if (pallet === 0) {
+        // Unpick a pallet - back to step 2 (pick pallet)
+        highlightDiagram('groundview', 'red');
+    }
+}
+function enterMode(mode) {
+    exitMode(curMode);
+    curMode = mode;
+
+    if (mode === 'VIEW') {
+        // Nothing required
+    } else if (mode === 'PICK') {
+        highlightDiagram('birdview', 'red');
+    }
+
+    renderBirdView();
+    renderGroundView();
+    displayDetails();
+}
+function exitMode(mode) {
+    if (mode === 'VIEW') {
+        // Nothing required
+    } else if (mode === 'PICK') {
+        curMode = 'PICK';
+        unhighlightDiagrams();
+        pickedBay = 0;
+        pickedPallet = 0;
+    }
+}
+function highlightDiagram(diagram, color) {
+    $('#' + diagram).parent().css('border', '2px solid ' + color)
+                             .css('box-shadow', '0 0 15px ' + color);
+}
+function unhighlightDiagrams() {
+    $('.diagram').css('border', '1px solid #DDDDDD')
+                 .css('box-shadow', 'none');
 }
 
 /*
@@ -109,7 +177,11 @@ function renderBirdView(coords) {
                 var bayClicked = 20 - fromTheLeft;
 
                 // Mark this bay as selected
-                selectBay(bayClicked);
+                if (curMode === 'VIEW') {
+                    viewBay(bayClicked);
+                } else if (curMode === 'PICK') {
+                    pickBay(bayClicked);
+                }
             }
         } else if (coords.y > margin + (7 * shelfWidth) && coords.y < margin + (8 * shelfWidth)) {
             // Click is in shelf 4 (Bottom shelf)
@@ -118,17 +190,25 @@ function renderBirdView(coords) {
                 var bayClicked = 31 - fromTheLeft;
 
                 // Mark this bay as selected
-                selectBay(bayClicked);
+                if (curMode === 'VIEW') {
+                    viewBay(bayClicked);
+                } else if (curMode === 'PICK') {
+                    pickBay(bayClicked);
+                }
             }
         } else {
-            selectBay(0);
+            // De-select
+            if (curMode === 'VIEW') {
+                viewBay(0);
+            } else if (curMode === 'PICK') {
+                pickBay(0);
+            }
         }
     }
 
     // Some basic settings
     var baseColor = '#EEEEEE';
-    var highlightX = 0;
-    var highlightY = 0;
+    var highlights = [];
     birdview_c.lineWidth = 1;
     birdview_c.strokeStyle = 'white';
 
@@ -138,10 +218,13 @@ function renderBirdView(coords) {
         var startY = margin;
 
         var bayNumber = 20 - i;
-        if (bayNumber === selectedBay) {
-            highlightX = startX;
-            highlightY = startY;
+        if (bayNumber === viewedBay) {
+            highlights.push({x: startX, y: startY, color: viewedColor});
         }
+        if (bayNumber === pickedBay) {
+            highlights.push({x: startX, y: startY, color: pickedColor});
+        }
+
         var sum = 0;
         for (var j = 0; j < 8; j++) {
             sum += palletData[bayNumber][j]['volume'];
@@ -164,10 +247,13 @@ function renderBirdView(coords) {
         var startY = margin + (7 * shelfWidth);
 
         var bayNumber = 31 - i;
-        if (bayNumber === selectedBay) {
-            highlightX = startX;
-            highlightY = startY;
+        if (bayNumber === viewedBay) {
+            highlights.push({x: startX, y: startY, color: viewedColor});
         }
+        if (bayNumber === pickedBay) {
+            highlights.push({x: startX, y: startY, color: pickedColor});
+        }
+
         var sum = 0;
         for (var j = 0; j < 8; j++) {
             sum += palletData[bayNumber][j]['volume'];
@@ -200,10 +286,11 @@ function renderBirdView(coords) {
     birdview_c.stroke();
 
     // Highlight the matching bay
-    if (highlightX != 0 && highlightY != 0) {
-        birdview_c.lineWidth = 2;
-        birdview_c.strokeStyle = 'blue';
-        birdview_c.strokeRect(highlightX, highlightY, bayWidth, shelfWidth);
+    birdview_c.lineWidth = 2;
+    for (var i = 0; i < highlights.length; i++) {
+        var highlight = highlights[i];
+        birdview_c.strokeStyle = highlight.color;
+        birdview_c.strokeRect(highlight.x, highlight.y, bayWidth, shelfWidth);
     }
 }
 
@@ -220,8 +307,16 @@ function renderGroundView(coords) {
     groundview.height = groundview.parentNode.offsetHeight;
     var groundview_c = groundview.getContext('2d');
 
+    // Bay to display depends on curMode
+    var bayToDisplay = 0;
+    if (curMode === 'VIEW') {
+        bayToDisplay = viewedBay;
+    } else if (curMode === 'PICK') {
+        bayToDisplay = pickedBay;
+    }
+
     // No bay selected - special case
-    if (selectedBay === 0) {
+    if (bayToDisplay === 0) {
         groundview_c.fillStyle = '#DDDDDD';
         groundview_c.font = (groundview.width / 20) + 'px Arial';
         groundview_c.textAlign = 'center';
@@ -247,9 +342,18 @@ function renderGroundView(coords) {
             var col = parseInt((coords.x - marginLeft) / dx);
 
             var palletClicked = (row * 2) + col + 1;
-            selectPallet(palletClicked);
+
+            if (curMode === 'VIEW') {
+                viewPallet(palletClicked);
+            } else if (curMode === 'PICK') {
+                pickPallet(palletClicked);
+            }
         } else {
-            selectPallet(0);
+            if (curMode === 'VIEW') {
+                viewPallet(0);
+            } else if (curMode === 'PICK') {
+                pickPallet(0);
+            }
         }
     }
 
@@ -257,10 +361,9 @@ function renderGroundView(coords) {
     groundview_c.fillStyle = 'black';
     groundview_c.font = 0.5 * offsetY + 'px Arial';
     groundview_c.textAlign = 'center';
-    groundview_c.fillText('Bay ' + selectedBay, groundview.width / 2, offsetY - 20);
+    groundview_c.fillText('Bay ' + bayToDisplay, groundview.width / 2, offsetY - 20);
 
-    var highlightX = 0;
-    var highlightY = 0;
+    var highlights = [];
 
     groundview_c.strokeStyle = 'gray';
     groundview_c.lineWidth = 2;
@@ -270,13 +373,15 @@ function renderGroundView(coords) {
             var startX = marginLeft + (col * dx);
             
             var palletNumber = (row * 2) + col + 1;
-            if (palletNumber === selectedPallet) {
-                highlightX = startX;
-                highlightY = startY;
+            if (bayToDisplay === viewedBay && palletNumber === viewedPallet) {
+                highlights.push({x: startX, y: startY, color: viewedColor});
+            }
+            if (bayToDisplay === pickedBay && palletNumber === pickedPallet) {
+                highlights.push({x: startX, y: startY, color: pickedColor});
             }
 
             // Data for this pallet
-            var data = palletData[selectedBay][palletNumber - 1];
+            var data = palletData[bayToDisplay][palletNumber - 1];
 
             // Draw height based on volume
             var fillHeight = data['volume'] / volumePerPallet * dy;
@@ -302,9 +407,10 @@ function renderGroundView(coords) {
         groundview_c.fillText('Level ' + (4 - row), margin, startY + dy/2);
     }
 
-    if (highlightX != 0 && highlightY != 0) {
-        groundview_c.strokeStyle = 'blue';
-        groundview_c.strokeRect(highlightX, highlightY, dx, dy);
+    for (var i = 0; i < highlights.length; i++) {
+        var highlight = highlights[i];
+        groundview_c.strokeStyle = highlight.color;
+        groundview_c.strokeRect(highlight.x, highlight.y, dx, dy);
     }
 }
 
@@ -312,15 +418,20 @@ function renderGroundView(coords) {
  * Update details box
  */
 function displayDetails() {
+    if (curMode === 'PICK') {
+        // We don't update the display view on PICK mode
+        return;
+    }
+
     var title = '';
     var body = '';
-    if (selectedPallet != 0) {
-        var level = 4 - parseInt((selectedPallet - 1) / 2);
-        var side = selectedPallet % 2 === 0 ? 'Right':'Left';
-        var data = palletData[selectedBay][selectedPallet - 1];
+    if (viewedPallet != 0) {
+        var level = 4 - parseInt((viewedPallet - 1) / 2);
+        var side = viewedPallet % 2 === 0 ? 'Right':'Left';
+        var data = palletData[viewedBay][viewedPallet - 1];
 
         // Pallet data
-        title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
+        title = 'Bay ' + viewedBay + ': ' + side + ' pallet level ' + level;
         var volume = data['volume'];
         body += (volume * 100 / volumePerPallet).toFixed(2) + '% full.<br>';
         for (var field in data) {
@@ -334,8 +445,8 @@ function displayDetails() {
                 body += '> ' + field + ': ' + stockData[data['stock']][field] + '<br>';
             }
         }
-    } else if (selectedBay != 0) {
-        title = 'Bay ' + selectedBay;
+    } else if (viewedBay != 0) {
+        title = 'Bay ' + viewedBay;
     } else {
         title = 'Warehouse';
     }

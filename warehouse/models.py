@@ -89,8 +89,10 @@ Logbook for things - very important
 class Log(models.Model):
     TYPES = (
         ('ADD', 'Add to pallet'),
+        ('RMV', 'Remove from pallet'),
         ('MOV', 'Move from pallet to pallet'),
-        ('GIV', 'Give/sell to company/customer'),
+        ('SWP', 'Swap contents of one pallet with another'),
+        ('SEL', 'Sell to company/customer'),
         ('RET', 'Company/customer returned a faulty fitting'),
         ('MOD', 'Modify return status'),
     )
