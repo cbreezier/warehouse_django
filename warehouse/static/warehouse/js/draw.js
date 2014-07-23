@@ -271,27 +271,41 @@ function renderGroundView(coords) {
 
     groundview_c.strokeStyle = 'gray';
     groundview_c.lineWidth = 2;
-    groundview_c.font = 0.3 * offsetY + 'px Arial';
-    groundview_c.textAlign = 'left';
     for (var row = 0; row < 4; row++) {
+        var startY = offsetY + (row * dy);
         for (var col = 0; col < 2; col++) {
             var startX = marginLeft + (col * dx);
-            var startY = offsetY + (row * dy);
+            
             var palletNumber = (row * 2) + col + 1;
             if (palletNumber === selectedPallet) {
                 highlightX = startX;
                 highlightY = startY;
             }
 
-            var volume = palletData[selectedBay][palletNumber - 1]['volume'];
-            var fillHeight = volume / volumePerPallet * dy;
+            // Data for this pallet
+            var data = palletData[selectedBay][palletNumber - 1];
+
+            // Draw height based on volume
+            var fillHeight = data['volume'] / volumePerPallet * dy;
             groundview_c.fillStyle = '#DDDDDD';
             groundview_c.fillRect(startX+1, startY + dy - fillHeight+1, dx-2, fillHeight-1);
             groundview_c.strokeRect(startX, startY, dx, dy);
 
-            groundview_c.fillStyle = 'black';
-            groundview_c.fillText('Level ' + (4 - row), margin, startY + dy/2);
+            // Write pallet contents text
+            groundview_c.fillStyle = '#888888';
+            groundview_c.textAlign = 'center';
+            groundview_c.font = 0.3 * offsetY + 'px Arial';
+            groundview_c.fillText(data['stock'], startX + dx/2, startY + dy/2);
+            if (data['stock'] !== 'None') {
+                groundview_c.fillText(data['qty'] + 'pcs', startX + dx/2, startY + 3*dy/4);
+            }
+            
         }
+        // Write Level X text
+        groundview_c.fillStyle = 'black';
+        groundview_c.textAlign = 'left';
+        groundview_c.font = 0.3 * offsetY + 'px Arial';
+        groundview_c.fillText('Level ' + (4 - row), margin, startY + dy/2);
     }
 
     if (highlightX != 0 && highlightY != 0) {
@@ -309,9 +323,14 @@ function displayDetails() {
     if (selectedPallet != 0) {
         var level = 4 - parseInt((selectedPallet - 1) / 2);
         var side = selectedPallet % 2 === 0 ? 'Right':'Left';
+        var data = palletData[selectedBay][selectedPallet - 1];
+
         title = 'Bay ' + selectedBay + ': ' + side + ' pallet level ' + level;
-        var volume = palletData[selectedBay][selectedPallet - 1]['volume'];
-        body = (volume * 100 / volumePerPallet).toFixed(2) + '% full.';
+        var volume = data['volume'];
+        body += (volume * 100 / volumePerPallet).toFixed(2) + '% full.<br>';
+        for (var field in data) {
+            body += field + ': ' + data[field] + '<br>';
+        }
     } else if (selectedBay != 0) {
         title = 'Bay ' + selectedBay;
     } else {
