@@ -40,7 +40,6 @@ $(window).resize(function() {
     renderGroundView();
 });
 $(document).on('click', '#actionModify', function(e) {
-    console.log('clicked');
     $('#actions').hide();
     var formTitle = 'Add new stock';
     var formType = 'StockType';
@@ -67,11 +66,89 @@ $(document).on('click', '#actionModify', function(e) {
         ]
     ));
 });
+$(document).on('click', '#actionMove', function(e) {
+    $('#actions').hide();
+    $('#actions').after(createForm('Move stock',
+        [
+            {label: 'Quantity',
+             id: 'qty',
+             type: 'Non-zero',
+             value: ''},
+            {label: 'Comments',
+             id: 'comments',
+             type: 'Text',
+             value: ''},
+            {label: 'Other Pallet',
+             id: 'otherpallet',
+             type: 'Pallet',
+             value: 'None selected'}
+        ]
+    ));
+    enterMode('PICK');
+});
+$(document).on('click', '#actionDone', function(e) {
+    e.preventDefault();
+
+    var errors = '';
+    var formData = {};
+    $('#actionForm form .form-control').each(function(index) {
+        var name = this.id.slice(4);
+        var type = $(this).data('type');
+        var value = '';
+        if (type === 'Static' || type === 'Pallet') {
+            value = $(this).text();
+        } else {
+            value = $(this).val();
+        }
+        console.log(index, name, type, value);
+
+        // Validate this field
+        var intPattern = /^[0-9]+$/;
+        var palletPattern = /^Bay [0-9]+: level [1-4][LR]$/;
+        if (type === 'Non-zero') {
+            // Check it's an integer
+            if (!intPattern.test(value)) {
+                errors += name + ' must be a valid non-zero integer<br>';
+            } else {
+                // Integer, but must not be 0
+                value = parseInt(value);
+                if (value === 0) {
+                    errors += name + ' must not be 0<br>';
+                }
+            }
+        } else if (type === 'Integer') {
+            if (!intPattern.test(value)) {
+                errors += name + ' must be a valid non-zero integer<br>';
+            }
+        } else if (type === 'Pallet') {
+            if (!palletPattern.test(value)) {
+                errors += name + 'You must pick a pallet<br>';
+            }
+        }
+
+        // Add field to formdata
+        if (name !== '') {
+            formData[name] = value;
+        }
+    });
+    if (errors === '') {
+        console.log('formData', formData);
+        displayMessage('success', 'Success', 'formInfo', '#details-title');
+    } else {
+        displayMessage('danger', errors, 'formInfo', '#details-title');
+    }
+});
 $(document).on('click', '#actionCancel', function(e) {
     e.preventDefault();
-    $('.actionForm').remove();
+    $('#actionForm').remove();
     $('#actions').show();
     enterMode('VIEW');
+});
+
+$(document).on('click', '.alert-dismiss', function () {
+    $(this).fadeOut(500, function () {
+        $(this).remove();
+    });
 });
 
 HTMLCanvasElement.prototype.relMouseCoords = function (event) {
@@ -95,22 +172,35 @@ HTMLCanvasElement.prototype.relMouseCoords = function (event) {
 /*
  * Helper functions
  */
+ function displayMessage(colour, message, className, insertBefore) {
+    var message = '<div class="'+className+' alert alert-dismiss alert-'+colour+'">'
+                + '  '+message+' <i>Click to dismiss</i>'
+                + '</div>';
+    $('.'+className).remove();
+    $(message).hide().insertBefore(insertBefore).fadeIn(500);
+}
 function createForm(title, fields) {
-    var html = '<div class="actionForm">';
+    var html = '<div id="actionForm">';
     html += '<h4>' + title + '</h4>';
     html += '<form class="form-horizontal" role="form">';
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
-        var fieldType = 'text';
-        if (field['type'] === 'Integer' || field['type'] === 'Text') {
-            fieldType = 'text';
+        var fieldHTML = '';
+        if (field['type'] === 'Non-zero' || field['type'] === 'Integer' || field['type'] === 'Text') {
+            fieldHTML += '<input type="text" data-type="' + field['type'] + '"class="form-control" id="form' + field['id'] + '">';
+        } else if (field['type'] === 'StockType') {
+            fieldHTML += '<select data-type="StockType" class="form-control" id="form' + field['id'] + '">';
+        } else if (field['type'] === 'Static') {
+            fieldHTML += '<span data-type="Static" class="form-control">' + field['value'] + '</span>';
+        } else if (field['type'] === 'Pallet') {
+            fieldHTML += '<span data-type="Pallet" class="form-control pallet-picker">' + field['value'] + '</span>';
         }
         html += '<div class="form-group">';
         html += '<label for="form' + field['id'] + '" class="col-sm-2 control-label">';
         html += field['label'];
         html += '</label>';
         html += '<div class="col-sm-6">';
-        html += '<input type="' + fieldType + '" class="form-control" id="form' + field['id'] + '">';
+        html += fieldHTML;
         html += '</div>';
         html += '</div>';
     }
@@ -167,9 +257,11 @@ function pickBay(bay) {
     if (bay === 0) {
         // Unpick a bay - back to step 1 (pick bay)
         highlightDiagram('birdview', 'red');
+        $('.pallet-picker').text('None selected');
     } else {
         // A bay is picked, go to next step
         highlightDiagram('groundview', 'red');
+        $('.pallet-picker').text('Bay ' + bay + ': ');
     }
 }
 function pickPallet(pallet) {
@@ -180,6 +272,11 @@ function pickPallet(pallet) {
     if (pallet === 0) {
         // Unpick a pallet - back to step 2 (pick pallet)
         highlightDiagram('groundview', 'red');
+        $('.pallet-picker').text('Bay ' + pickedBay + ': ');
+    } else {
+        var row = parseInt((pallet - 1) / 2) + 1;
+        var side = pallet % 2 === 0 ? 'R' : 'L';
+        $('.pallet-picker').text('Bay ' + pickedBay + ': level ' + row + side);
     }
 }
 function enterMode(mode) {
@@ -499,7 +596,12 @@ function displayDetails() {
         var data = palletData[viewedBay][viewedPallet - 1];
 
         body += '<div id="actions">';
-        body += '<button type="button" class="btn btn-default" id="actionModify">Modify Stock</button>';
+        if (data['stock'] !== 'None') {
+            body += '<button type="button" class="btn btn-default" id="actionModify">Modify Stock</button>';
+            body += '<button type="button" class="btn btn-default" id="actionMove">Move Stock</button>';
+        } else {
+            body += '<button type="button" class="btn btn-default" id="actionModify">Add Stock</button>';
+        }
         body += '</div>';
 
         // Pallet data
@@ -523,6 +625,6 @@ function displayDetails() {
         title = 'Warehouse';
     }
 
-    var html = '<h2>' + title + '</h2><p>' + body + '</p>';
+    var html = '<h2 id="details-title">' + title + '</h2><p>' + body + '</p>';
     $('#details .content').html(html);
 }
