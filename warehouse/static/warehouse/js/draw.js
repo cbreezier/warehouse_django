@@ -49,7 +49,7 @@ $(document).on('click', '#actionModify', function(e) {
         formType = 'Static';
         formValue = palletData[viewedBay][viewedPallet - 1]['stock'];
     }
-    $('#actions').after(createForm(formTitle,
+    $('#actions').after(createForm(formTitle, 'MODIFY',
         [
             {label: 'Stock Type',
              id: 'stocktype',
@@ -68,7 +68,7 @@ $(document).on('click', '#actionModify', function(e) {
 });
 $(document).on('click', '#actionMove', function(e) {
     $('#actions').hide();
-    $('#actions').after(createForm('Move stock',
+    $('#actions').after(createForm('Move stock', 'MOVE',
         [
             {label: 'Quantity',
              id: 'qty',
@@ -90,7 +90,7 @@ $(document).on('click', '#actionDone', function(e) {
     e.preventDefault();
 
     var errors = '';
-    var formData = {};
+    var formData = {action: $('#actionForm').data('action')};
     $('#actionForm form .form-control').each(function(index) {
         var name = this.id.slice(4);
         var type = $(this).data('type');
@@ -163,8 +163,10 @@ HTMLCanvasElement.prototype.relMouseCoords = function (event) {
         totalOffsetY += currentElement.offsetTop - currentElement.scrollTop;
     } while (currentElement = currentElement.offsetParent);
 
-    canvasX = event.pageX - totalOffsetX;
-    canvasY = event.pageY - totalOffsetY;
+    // console.log(event.pageX, event.pageY, '|', event.clientX, event.clientY);
+    // console.log('minus', totalOffsetX, totalOffsetY, '|', rect.left, rect.top);
+    canvasX = event.clientX - totalOffsetX;
+    canvasY = event.clientY - totalOffsetY;
 
     return {x: canvasX, y: canvasY}
 }
@@ -179,8 +181,8 @@ HTMLCanvasElement.prototype.relMouseCoords = function (event) {
     $('.'+className).remove();
     $(message).hide().insertBefore(insertBefore).fadeIn(500);
 }
-function createForm(title, fields) {
-    var html = '<div id="actionForm">';
+function createForm(title, action, fields) {
+    var html = '<div id="actionForm" data-action="' + action + '">';
     html += '<h4>' + title + '</h4>';
     html += '<form class="form-horizontal" role="form">';
     for (var i = 0; i < fields.length; i++) {
